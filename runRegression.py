@@ -1,10 +1,10 @@
 import pandas as pd
-import statsmodels.formula.api as sm
+import statsmodels.api as sm
 
 #USA
-
 #SETUP DATA
 goodsAndServices = pd.read_csv('Goods And Services Data (Long).csv')
+gdp = pd.read_csv('GDP.csv')
 inflation = pd.read_csv('Inflation Data (Long).csv')
 inflation['DATE'] = pd.DatetimeIndex(inflation['DATE']).year
 inflation.set_index('DATE', inplace=True)
@@ -22,11 +22,17 @@ flatInflation = inflation.values.flatten()[10:]
 regressionFrame['Inflation'] = flatInflation
 regressionFrame.index = usaGoodsAndServicesEXP.index
 regressionFrame['Exports'] = usaGoodsAndServicesEXP['Value']
+regressionFrame['LaggedExports'] = regressionFrame['Exports'].shift(1)
+regressionFrame['GDP'] = gdp['GDP'].values.flatten()
+regressionFrame['LaggedGDP'] = regressionFrame['GDP'].shift(1)
+regressionFrame['LaggedInflation'] = regressionFrame['Inflation'].shift(1)
+regressionFrame.dropna(inplace=True)
 
-#PERFORM REGRESSION
-# Formula would be like Inflation ~ Exports + ...
-result = sm.ols(formula="Inflation ~ Exports", data=regressionFrame).fit()
-print(result.params)
-print(result.summary())
+# PERFORM REGRESSION
+X = regressionFrame[['LaggedInflation', 'Exports', 'LaggedExports', 'GDP', 'LaggedGDP']]
+y = regressionFrame['Inflation']
+X2 = sm.add_constant(X)
+est = sm.OLS(y, X2).fit()
+
 
 
